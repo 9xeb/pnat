@@ -1,0 +1,55 @@
+## First rule - delete all
+-D
+
+## Increase the buffers to survive stress events.
+## Make this bigger for busy systems
+#-b 8192
+-b 131072
+
+## This determine how long to wait in burst of events
+#--backlog_wait_time 60000
+
+## Set failure mode to syslog
+-f 1
+
+# log processes interacting with sockets
+# ipv4 socket allocation
+#-a always,exit -F arch=b64 -S socket -F success=1 -F a0=2
+#-a always,exit -F arch=b32 -S socket -F success=1 -F a0=2
+# ipv6 socket allocation
+#-a always,exit -F arch=b64 -S socket -F success=1 -F a0=10
+#-a always,exit -F arch=b32 -S socket -F success=1 -F a0=10
+
+# exit single threaded
+-a always,exit -S exit -k pnat_exit
+# exit multi_threaded
+-a always,exit -S exit_group -k pnat_exit
+
+# OUTGOING
+# connect syscall (contains info about outgoing IP address in saddr=)
+-a always,exit -F arch=b64 -S connect -F success=1 -k pnat_start
+-a always,exit -F arch=b32 -S connect -F success=1 -k pnat_start
+# connectionless datagrams (with IP)
+-a always,exit -F arch=b64 -S sendto -k pnat_start
+-a always,exit -F arch=b32 -S sendto -k pnat_start
+-a always,exit -F arch=b64 -S sendmsg -k pnat_start
+-a always,exit -F arch=b32 -S sendmsg -k pnat_start
+
+# INCOMING (firewalls prevent this)
+# connection accept (with info about remote IP)
+-a always,exit -S accept -k pnat_start
+# connectionless (with IP)
+-a always,exit -F arch=b64 -S recvfrom -k pnat_start
+-a always,exit -F arch=b32 -S recvfrom -k pnat_start
+-a always,exit -F arch=b64 -S recvmsg -k pnat_start
+-a always,exit -F arch=b32 -S recvmsg -k pnat_start
+
+#-a always,exit -S close -F success=1
+#-a always,exit -F arch=b64 -S accept
+#-a always,exit -F arch=b32 -S accept
+# contains info about port aswell
+#-a always,exit -F arch=b64 -S bind
+#-a always,exit -F arch=b32 -S bind
+#-a always,exit -F arch=b64 -S close
+#-a always,exit -F arch=b32 -S close
+
