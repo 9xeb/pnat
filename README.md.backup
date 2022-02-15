@@ -28,7 +28,7 @@ Run
 ```
 
 
-### How it works
+###### How it works
 PNAT queries auditd for the following list of 'starter' system calls:
  * connect
  * accept
@@ -47,6 +47,6 @@ Because by just monitoring network 'starter' calls, very little context is provi
 Ideally we should close the time frame when a network socket close happens, but there is no way in auditd to distinguish network sockets from any other socket. Recording all socket close calls and then applying some filtering would be tremendously resource intensive since processes die once but may close several sockets.
 Therefore, I chose to extend the time frame from a 'starter' syscall up until the process exit call. It is my attempt to contain resource usage while making sure usable data for intelligence is generated.
 
-### TODO:
+###### TODO:
  - some install scripts for centralized auditd collection
  - adapt pnat to process logs from different hosts (add host field) when centralized auditd is configured
