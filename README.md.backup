@@ -39,7 +39,7 @@ PNAT queries auditd for the following list of 'starter' system calls:
 
 For each event, it matches the first following exit or exit_group syscall made by the same PID. If it does not find any, the 'starter' record is treated as an ongoing network event, and the ending timestamp is set to 0.
 
-The choice of monitoring from connect/accept/sendmsg/... to exit/exit_group is because,
+The choice of monitoring from connect/accept/sendmsg/... to exit/exit_group was made because,
 it is better to keep a record of potentially malicious processes until 24 hours after their death
 and in case they run without interruption for days or weeks, we need to be able to track their activity for at least as long as they live.
 

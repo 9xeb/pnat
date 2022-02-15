@@ -22,6 +22,11 @@ Install
  # ./install_dependencies.sh
 ```
 
+Setup auditd
+```bash
+ # ./setup_auditd_local.sh
+```
+
 Run
 ```bash
  # ./correlate.sh
