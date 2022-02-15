@@ -36,13 +36,13 @@ PNAT queries auditd for the following list of 'starter' system calls:
  * sendmsg
  * recvfrom
  * recvmsg
-and then for each event, it matches the first following exit or exit_group syscall made by the same PID. If it does not find any, the 'starter' record is treated as an ongoing network event, and the ending timestamp is set to 0.
+ and then for each event, it matches the first following exit or exit_group syscall made by the same PID. If it does not find any, the 'starter' record is treated as an ongoing network event, and the ending timestamp is set to 0.
 
 The choice of monitoring from connect/accept/sendmsg/... to exit/exit_group is because,
 it is better to keep a record of potentially malicious processes until 24 hours after their death
 and in case they run without interruption for days or weeks, we need to be able to track their activity for at least as long as they live.
 
-###### Why monitoring exit calls?
+### Why monitoring exit calls?
 Because by just monitoring network 'starter' calls, very little context is provided to determine a time frame during which malicious network activity happened
 Ideally we should close the time frame when a network socket close happens, but there is no way in auditd to distinguish network sockets from any other socket. Recording all socket close calls and then applying some filtering would be tremendously resource intensive since processes die once but may close several sockets.
 Therefore, I chose to extend the time frame from a 'starter' syscall up until the process exit call. It is my attempt to contain resource usage while making sure usable data for intelligence is generated.
