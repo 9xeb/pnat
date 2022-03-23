@@ -31,37 +31,24 @@ echo "[*] Saving checkpoint as 24 hours ago"
 date '+%x %H:%M:%S' -d "1 day ago" | sudo tee "$dir"/checkpoint
 
 rm "$dir"/*.fifo
+rm "$dir"/*.txt
 starttime=$(cat "$dir"/checkpoint)
 
 ######## CONNECT & ACCEPT (timestamp, socket, executable) ########
 # ipv4 and ipv6
+
 echo "[*] Updating connect/accept/sendto/sendmsg/recvfrom/recvmsg events list"
+tail -F /var/log/audit/audit.log 2>/dev/null | grep --line-buffered -e '^type=SOCKADDR' -e '^type=SYSCALL' | \
+awk -W interactive '{if($1~/^type=SOCKADDR/) {printf("%s",$0)} else {print $0}}' | \
+grep --line-buffered -e '.*saddr_fam=inet.*' -e '.*saddr_fam=inet6.*' | grep --line-buffered -v 'laddr=127.0.0.1' | grep --line-buffered -v 'laddr=::1' | \
+awk -W interactive '{split(substr($2,11),a,")"); split(a[1],b,":"); printf b[2]" "} {split(substr($2,11),a,"."); printf a[1]" "} {for(i=1;i<=NF;i++) {if($i~/^pid=/ || $i~/^exe=/) {printf "%s",substr($i,5)" "} if($i~/^euid=/) {printf "%s",substr($i,6)" "} if($i~/^laddr=/) {printf "%s",substr($i,7)" "}}} {print ""}' > "$dir"/connmeta.txt &
 
-mkfifo "$dir"/rawconn.fifo
-mkfifo "$dir"/rawconn2.fifo
-mkfifo "$dir"/conn_timestamps.fifo
-mkfifo "$dir"/connid.fifo
-mkfifo "$dir"/conntime.fifo
-mkfifo "$dir"/connmeta.fifo
+# The complex awk program above is made of four major { blocks }:
+#   1. Two splits of $2 to retrieve the unique event ID
+#   2. Two splits of $2 to retrieve a timestamp (seconds after 01/01/1970)
+#   3. A for loop that goes through whitespace separated columns of a line, and matches these columns with regexes to extract a (REMOTE_IP, PID, EUID, EXECUTABLE_PATH) tuple
+#   4. A simple trailing newline to end the record
 
-# consumers
-# (startdate, starttime)
-cat "$dir"/rawconn.fifo | tee "$dir"/rawconn2.fifo | awk '{print substr($2,11) " " substr($3,1,8) " ";}' > "$dir"/conn_timestamps.fifo &
-date -f "$dir"/conn_timestamps.fifo +%s > "$dir"/conntime.fifo &
-# (id) by removing the trailing ")" character
-awk '{print substr($3,14,length($3)-14) ;}' "$dir"/rawconn2.fifo > "$dir"/connid.fifo &
-
-sudo ausearch -k pnat_start --interpret | grep -e '^type=SOCKADDR' -e '^type=SYSCALL' | \
-awk '{if($1~/^type=SOCKADDR/) {printf("%s",$0)} else {print $0}}' | \
-grep -e '.*saddr_fam=inet.*' -e '.*saddr_fam=inet6.*' | grep -v 'laddr=127.0.0.1' | tee "$dir"/rawconn.fifo | \
-awk '{for(i=1;i<=NF;i++) {if($i~/^pid=/ || $i~/^exe=/) {printf "%s",substr($i,5)" "} if($i~/^euid=/) {printf "%s",substr($i,6)" "} if($i~/^laddr=/) {printf "%s",substr($i,7)" "}}} {print ""}' > "$dir"/connmeta.fifo &
-# if necessary, add $i~/^lport=/ above, for port visibility
-
-mkfifo "$dir"/conn.fifo
-paste -d ' ' "$dir"/connid.fifo "$dir"/conntime.fifo "$dir"/connmeta.fifo | sort | uniq > "$dir"/conn.fifo && rm "$dir"/rawconn.fifo "$dir"/rawconn2.fifo "$dir"/conn_timestamps.fifo "$dir"/connid.fifo "$dir"/conntime.fifo "$dir"/connmeta.fifo &
-
-#cat "$dir"/conn.fifo
-#exit
 
 ##################################
 # I've been thinking about this for quite some time
@@ -78,32 +65,11 @@ paste -d ' ' "$dir"/connid.fifo "$dir"/conntime.fifo "$dir"/connmeta.fifo | sort
 # this way we can find out when (and if) the process has exited
 echo "[*] Updating exit/exit_group events list"
 
-mkfifo "$dir"/rawclose.fifo
-mkfifo "$dir"/rawclose2.fifo
-mkfifo "$dir"/close_timestamps.fifo
-mkfifo "$dir"/closeid.fifo
-mkfifo "$dir"/closetime.fifo
-mkfifo "$dir"/closemeta.fifo
-
-# consumers
-# (startdate, starttime)
-cat "$dir"/rawclose.fifo | tee "$dir"/rawclose2.fifo | awk '{print substr($2,11) " " substr($3,1,8) " ";}' > "$dir"/close_timestamps.fifo &
-date -f "$dir"/close_timestamps.fifo '+%s' > "$dir"/closetime.fifo &
-
-# (id) by removing trailing ")"
-awk '{print substr($3,14,length($3)-14) " ";}' "$dir"/rawclose2.fifo > "$dir"/closeid.fifo &
-
 # producer (exit)
-sudo ausearch -k pnat_exit --interpret | \
-grep -e '^type=SYSCALL' | tee "$dir"/rawclose.fifo | \
-awk '{for(i=1;i<=NF;i++) {if($i~/^pid=/) printf("%s",$i" ")}} {print ""}' > "$dir"/closemeta.fifo &
+tail -F /var/log/audit/audit.log 2>/dev/null | \
+grep --line-buffered -e '^type=SYSCALL' | grep --line-buffered -e 'pnat_exit' | \
+awk -W interactive '{split(substr($2,11),a,")"); split(a[1],b,":"); printf b[2]" "} {split(substr($2,11),a,"."); printf a[1]" "} {for(i=1;i<=NF;i++) {if($i~/^pid=/ || $i~/^exe=/) {printf "%s",substr($i,5)" "}}} {print ""}' > "$dir"/closemeta.txt
 
-mkfifo "$dir"/close.fifo
-paste -d ' ' "$dir"/closeid.fifo "$dir"/closetime.fifo "$dir"/closemeta.fifo | sort | uniq > "$dir"/close.fifo && rm "$dir"/rawclose.fifo "$dir"/rawclose2.fifo "$dir"/close_timestamps.fifo "$dir"/closeid.fifo "$dir"/closetime.fifo "$dir"/closemeta.fifo &
-
-#cat "$dir"/conn.fifo
-#cat "$dir"/close.fifo
-#exit
 ##################################
 # for each connect/accept event, find the first exit event with the same PID, after the connect/accept timestamp.
 # this is how we unambiguously determine a valid time frame to correlate network alerts with
