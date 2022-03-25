@@ -14,13 +14,14 @@ close.fifo contains process exits events:
 
 Python reads from these two named pipes and implements a multithreaded consumer/producer pattern.
 A producer reads from conn.fifo and keeps a dictionary of network events to process. One dictionary record looks like this: (timestamp,pid):record
+It logs all network events as [pending], this way it is possible to track network events of processes that are still alive.
 
 A consumer reads from close.fifo and matches each of its records by consuming entries of the dictionary of tracked connections. 
 For each exited process it looks for network events that happened with its PID and before the PID exited. 
 When a network event is hit, it is removed from the dictionary. This is what makes the consumer/producer pattern work. 
-It logs what it finds.
+It then logs what it finds as [closed] log records.
 
-The result is a grepable logfile containing executable names, IPs they communicated with and a time frame during which network events certainly happened.
+The result is a grepable logfile containing executable paths, IPs they communicated with and a time frame during which network events certainly happened.
 
 PNAT is written with the intent of enriching alerts that come from any kind of network related logs.
 
