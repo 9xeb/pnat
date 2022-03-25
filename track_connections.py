@@ -13,7 +13,7 @@ active_connections_lock = threading.Lock()
 # This consumes the dictionary produced by conns_tracker()
 def closed_tracker():
 	print("Started closed_tracker")
-	with open('/var/lib/pnat/logs.log', 'a') as logfile:
+	with open('/var/lib/pnat/pnat.log', 'a') as logfile:
 		# Resilient fifo follower
 		with open('/var/lib/pnat/close.fifo') as closefifo:
 			while True:
@@ -36,25 +36,31 @@ def closed_tracker():
 						connline = active_connections.pop(key)
 						conntime = key[0]
 						connip = connline.split(' ')[1]
-						print("exe={} ip={} start={} end={}".format(closeexe, connip, conntime, closetime))
-						logfile.write("exe={} ip={} start={} end={}\n".format(closeexe, connip, conntime, closetime))
+						print("[closed] exe={} ip={} start={} end={}".format(closeexe, connip, conntime, closetime))
+						logfile.write("[closed] exe={} ip={} start={} end={}\n".format(closeexe, connip, conntime, closetime))
 					logfile.flush()
 
 # For every new network event, grow a dictionary (timestamp,pid):(event metadata). This works as a producer.
 def conns_tracker():
 	print("Started conns_tracker")
-	with open('/var/lib/pnat/conn.fifo') as connfifo:
-		while True:
-			connline = connfifo.readline()
-			if len(connline) == 0:
-				print("Conns writer closed")
-				break
-			connsplit = connline.split(' ')
-			connpid = connsplit[2]
-			conntime = connsplit[0]
-			# Use (conntime, connpid) as dict key
-			with active_connections_lock:
-				active_connections[(conntime, connpid)] = connline
+	with open('/var/lib/pnat/pnat.log', 'a') as logfile:
+		with open('/var/lib/pnat/conn.fifo') as connfifo:
+			while True:
+				connline = connfifo.readline()
+				if len(connline) == 0:
+					print("Conns writer closed")
+					break
+				connsplit = connline.split(' ')
+				connpid = connsplit[2]
+				conntime = connsplit[0]
+				connip = connsplit[1]
+				connexe = connsplit[4]
+				# Use (conntime, connpid) as dict key
+				with active_connections_lock:
+					active_connections[(conntime, connpid)] = connline
+					print("[pending] exe={} ip={} start={}".format(connexe, connip, conntime))
+					logfile.write("[pending] exe={} ip={} start={}\n".format(connexe, connip, conntime))
+					logfile.flush()
 
 
 with concurrent.futures.ThreadPoolExecutor() as executor:
