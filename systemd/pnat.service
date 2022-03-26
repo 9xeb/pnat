@@ -1,0 +1,12 @@
+[Unit]
+Description=Process Network Activity Tracker for Linux
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/pnat
+Restart=on-failure
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
+Alias=pnat.service
