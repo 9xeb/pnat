@@ -91,4 +91,5 @@ echo "[*] Started exit events parser"
 # we track connections on a separate single process because if we run bash commands here they get recorded as exit syscalls
 # and we get an infinite loop that fills the audit logs
 "$dir"/tracker.py
-exit
+
+kill_tree
