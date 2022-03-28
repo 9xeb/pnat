@@ -5,14 +5,15 @@ It comes with specifically crafted auditd rules to trace all syscalls associated
 It is made of two components: a bash parser and a python tracker/logger.
 Bash takes care of following audit logs in real time and writes into two named pipes: conn.fifo and close.fifo.
 conn.fifo contains single network event records:
-| timestamp  | ip | pid | euid | exe | 
-| ---------- | -- | --- | ---- | --- |
+| timestamp  | ip | pid | exe | 
+| ---------- | -- | --- | --- |
 
 close.fifo contains process exits events:
-| timestamp  | pid | exe | 
+| timestamp  | pid | exe |
 | ---------- | --- | --- |
 
 Python reads from these two named pipes and implements a multithreaded consumer/producer pattern.
+
 A producer reads from conn.fifo and keeps a dictionary of network events to process. One dictionary record looks like this: (timestamp,pid):record
 It logs all network events as [pending], this way it is possible to track network events of processes that are still alive.
 
@@ -25,7 +26,7 @@ The result is a grepable logfile containing executable paths, IPs they communica
 
 PNAT is written with the intent of enriching alerts that come from any kind of network related logs.
 
-Warning: outgoing UDP traffic will stress auditd a lot
+Warning: outgoing UDP traffic will stress auditd a lot and slow down the whole system. This is because a single UDP conversation triggers lots of sendmsg and sendto calls.
 
 Install
 ```bash
