@@ -36,9 +36,9 @@ trap kill_tree SIGTERM SIGINT
 dir='/var/lib/pnat'
 
 # Auditd Parser for Process Network Activity Tracking
-if ! [[ -r "$dir" ]]; then
-  sudo mkdir "$dir"
-fi
+#if ! [[ -r "$dir" ]]; then
+#  sudo mkdir "$dir"
+#fi
 
 if ! [[ -x "$dir"/tracker.py ]]; then
   echo "[!] Tracker not found in ""$dir"/tracker.py
@@ -57,7 +57,7 @@ mkfifo "$dir"/conn.fifo
 cat "$dir"/raw0.fifo | grep --line-buffered -e '^type=SOCKADDR' -e '^type=SYSCALL' | \
 mawk -W interactive '{if($1~/^type=SOCKADDR/) {printf("%s",$0)} else {print $0}}' | \
 grep --line-buffered -e '.*fam=inet.*' -e '.*fam=inet6.*' | grep --line-buffered -v 'laddr=127.0.0.1' | grep --line-buffered -v 'laddr=::1' | \
-mawk -W interactive '{split(substr($2,11),a,":"); printf a[1]" "} {for(i=1;i<=NF;i++) {if($i~/^pid=/ || $i~/^exe=/) {printf "%s",substr($i,5)" "} if($i~/^euid=/) {printf "%s",substr($i,6)" "} if($i~/^laddr=/) {printf "%s",substr($i,7)" "}}} {print ""}' > "$dir"/conn.fifo &
+mawk -W interactive '{split(substr($2,11),a,":"); printf a[1]" "} {for(i=1;i<=NF;i++) {if($i~/^pid=/ || $i~/^exe=/) {printf "%s",substr($i,5)" "} if($i~/^laddr=/) {printf "%s",substr($i,7)" "}}} {print ""}' > "$dir"/conn.fifo &
 # The mawk program above is made of 3 main blocks:
 #	1. Timestamp of the conn event
 #	2. PID,EXE,EUID,IP_ADDRESS
@@ -83,6 +83,11 @@ mawk -W interactive '{split(substr($2,11),a,":"); printf a[1]" "} {for(i=1;i<=NF
 #	3. Newline at the end of the record
 echo "[*] Started exit events parser"
 
+#cat "$dir"/close.fifo "$dir"/conn.fifo
+#exit
+#cat "$dir"/close.fifo > /dev/null &
+#cat "$dir"/conn.fifo
+#exit
 # we track connections on a separate single process because if we run bash commands here they get recorded as exit syscalls
 # and we get an infinite loop that fills the audit logs
 "$dir"/tracker.py
