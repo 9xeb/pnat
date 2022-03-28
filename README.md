@@ -45,13 +45,10 @@ Run
 
 
 ### How it works
-PNAT queries auditd for the following list of 'starter' system calls:
+PNAT queries auditd for the following list of outgoing 'starter' system calls:
  * connect
- * accept
  * sendto
  * sendmsg
- * recvfrom
- * recvmsg
 
 For each exit event, it matches the 'starter' calls made by the same PID and before the exit event.
 
