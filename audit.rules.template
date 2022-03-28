@@ -20,6 +20,8 @@
 #-a always,exit -F arch=b64 -S socket -F success=1 -F a0=10
 #-a always,exit -F arch=b32 -S socket -F success=1 -F a0=10
 
+# Exclude irrelevant records to reduce load
+-a never,exclude -F msgtype=PROCTITLE
 # exit single threaded
 -a always,exit -S exit -k pnat_exit
 # exit multi_threaded
@@ -30,19 +32,23 @@
 -a always,exit -F arch=b64 -S connect -F success=1 -k pnat_start
 -a always,exit -F arch=b32 -S connect -F success=1 -k pnat_start
 # connectionless datagrams (with IP)
--a always,exit -F arch=b64 -S sendto -k pnat_start
--a always,exit -F arch=b32 -S sendto -k pnat_start
--a always,exit -F arch=b64 -S sendmsg -k pnat_start
--a always,exit -F arch=b32 -S sendmsg -k pnat_start
+-a always,exit -F arch=b64 -F success=1 -S sendto -k pnat_start
+-a always,exit -F arch=b32 -F success=1 -S sendto -k pnat_start
+-a always,exit -F arch=b64 -F success=1 -S sendmsg -k pnat_start
+-a always,exit -F arch=b32 -F success=1 -S sendmsg -k pnat_start
 
 # INCOMING (firewalls prevent this)
+
+# These rules are commented out by default because incoming connections are heavily filtered by firewalls
+# The kind of C2 we're looking for is done with reverse channels
+
 # connection accept (with info about remote IP)
--a always,exit -S accept -k pnat_start
+#-a always,exit -F msgtype=SOCKADDR -F success=1 -S accept -k pnat_start
 # connectionless (with IP)
--a always,exit -F arch=b64 -S recvfrom -k pnat_start
--a always,exit -F arch=b32 -S recvfrom -k pnat_start
--a always,exit -F arch=b64 -S recvmsg -k pnat_start
--a always,exit -F arch=b32 -S recvmsg -k pnat_start
+#-a always,exit -F msgtype=SOCKADDR -F arch=b64 -F success=1 -S recvfrom -k pnat_start
+#-a always,exit -F msgtype=SOCKADDR -F arch=b32 -F success=1 -S recvfrom -k pnat_start
+#-a always,exit -F msgtype=SOCKADDR -F arch=b64 -F success=1 -S recvmsg -k pnat_start
+#-a always,exit -F msgtype=SOCKADDR -F arch=b32 -F success=1 -S recvmsg -k pnat_start
 
 #-a always,exit -S close -F success=1
 #-a always,exit -F arch=b64 -S accept
