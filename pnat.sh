@@ -57,11 +57,10 @@ mkfifo "$dir"/conn.fifo
 cat "$dir"/raw0.fifo | grep --line-buffered -e '^type=SOCKADDR' -e '^type=SYSCALL' | \
 mawk -W interactive '{if($1~/^type=SOCKADDR/) {printf("%s",$0)} else {print $0}}' | \
 grep --line-buffered -e '.*fam=inet.*' -e '.*fam=inet6.*' | grep --line-buffered -v 'laddr=127.0.0.1' | grep --line-buffered -v 'laddr=::1' | \
-mawk -W interactive '{split(substr($2,11),a,":"); printf a[1]" "} {for(i=1;i<=NF;i++) {if($i~/^pid=/ || $i~/^exe=/) {printf "%s",substr($i,5)" "} if($i~/^laddr=/) {printf "%s",substr($i,7)" "}}} {print ""}' > "$dir"/conn.fifo &
-# The mawk program above is made of 3 main blocks:
-#	1. Timestamp of the conn event
-#	2. PID,EXE,EUID,IP_ADDRESS
-#	3. Newline to end the record
+mawk -W interactive '{printf "{"} {split(substr($2,11),a,":"); printf "\042start\042:\042"a[1]"\042,"} {for(i=1;i<=NF;i++) {if($i~/^pid=/) {printf "\042pid\042:\042%s\042,",substr($i,5)} if($i~/^exe=/) {printf "\042exe\042:%s",substr($i,5)} if($i~/^laddr=/) {printf "\042ip"i"\042:\042%s\042,",substr($i,7)}}} {print "}"}' > "$dir"/conn.fifo &
+# The mawk program above produces json records in the form of:
+# {start: "1648559618.594", ip: "127.0.0.53", pid: "6566", exe: "/usr/lib/firefox/firefox"}
+# There can be multiple ip keys, if that's the case each ip key will have a unique id such as {ip23:"127.0.0.1", ip45:"192.168.1.1"}
 echo "[*] Started connection events parser"
 
 ##################################
@@ -76,7 +75,7 @@ echo "[*] Started connection events parser"
 mkfifo "$dir"/close.fifo
 cat "$dir"/raw1.fifo | \
 grep --line-buffered -e '^type=SYSCALL' | grep --line-buffered -e 'pnat_exit' | \
-mawk -W interactive '{split(substr($2,11),a,":"); printf a[1]" "} {for(i=1;i<=NF;i++) {if($i~/^pid=/ || $i~/^exe=/) {printf "%s",substr($i,5)" "}}} {print ""}' > "$dir"/close.fifo &
+mawk -W interactive '{printf "{"} {split(substr($2,11),a,":"); printf "\042end\042:\042"a[1]"\042,"} {for(i=1;i<=NF;i++) {if($i~/^pid=/) {printf "\042pid\042:\042%s\042,",substr($i,5)} if($i~/^exe=/) {printf "\042exe\042:%s",substr($i,5)}}} {print "}"}' > "$dir"/close.fifo &
 # The mawk program above is made of 3 main blocks:
 #	1. Timestamp of the exit event
 #	2. PID,EXE
@@ -85,11 +84,10 @@ echo "[*] Started exit events parser"
 
 #cat "$dir"/close.fifo "$dir"/conn.fifo
 #exit
-#cat "$dir"/close.fifo > /dev/null &
-#cat "$dir"/conn.fifo
+#cat "$dir"/conn.fifo > /dev/null &
+#cat "$dir"/close.fifo
 #exit
 # we track connections on a separate single process because if we run bash commands here they get recorded as exit syscalls
 # and we get an infinite loop that fills the audit logs
 "$dir"/tracker.py
-
 kill_tree
