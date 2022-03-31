@@ -48,7 +48,7 @@ def closed_tracker(condition, parsed_keys={0}):
 						conntime = connjson['start']	# already made to integer by conns_tracker
 						connip = connjson['ip']
 						close_json = {'type': 'closed', 'start': conntime, 'end': closetime, 'ip': connip, 'exe': closeexe}
-						print("{}".format(close_json))
+						#print("{}".format(close_json))
 						logfile.write("{}\n".format(close_json))
 					logfile.flush()
 
@@ -94,7 +94,7 @@ def conns_tracker(condition, parsed_keys={(0,'',0)}):
 							parsed_keys.add((conntime,connip,connpid))
 							stripped_connjson = {'type':'pending', 'start': conntime, 'ip': connip, 'exe': connexe}
 							active_connections[(conntime, connip, connpid)] = stripped_connjson
-							print("{}".format(stripped_connjson))
+							#print("{}".format(stripped_connjson))
 							logfile.write("{}\n".format(stripped_connjson))
 							logfile.flush()
 
