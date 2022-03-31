@@ -10,7 +10,7 @@ echo "[*] Installing pnat"
 rm -rf /var/lib/pnat
 mkdir /var/lib/pnat
 cp ./tracker.py /var/lib/pnat/tracker.py
-cp ./correlate.sh /usr/bin/pnat
+cp ./pnat.sh /usr/bin/pnat
 chmod +x /usr/bin/pnat
 cp ./systemd/pnat.service /etc/systemd/system/pnat.service
 systemctl daemon-reload
