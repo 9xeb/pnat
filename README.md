@@ -64,3 +64,4 @@ Therefore, I chose to extend the time frame from a 'starter' syscall up until th
 ### TODO:
  - some install scripts for centralized auditd collection
  - adapt pnat to process logs from different hosts (add host field) when centralized auditd is configured
+ - tmpfs for audit logs without centralized collection to enable in loco intel production
