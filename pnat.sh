@@ -34,7 +34,7 @@ trap kill_tree SIGTERM SIGINT
 # the goal is to turn high amounts of false positives from network audit into an asset for semi-automated monitoring
 # and allow the security analyst to identify true positives via easy manual inspection
 dir='/var/lib/pnat'
-
+#logdir='/var/log/pnat'
 # Auditd Parser for Process Network Activity Tracking
 #if ! [[ -r "$dir" ]]; then
 #  sudo mkdir "$dir"

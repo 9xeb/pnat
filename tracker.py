@@ -22,7 +22,7 @@ last_conn_timestamp = float(0.0)
 # This consumes the dictionary produced by conns_tracker()
 def closed_tracker(condition, parsed_keys={0}):
 	print("Started closed_tracker")
-	with open('/var/lib/pnat/pnat.log', 'a') as logfile:
+	with open('/var/log/pnat/pnat.log', 'a') as logfile:
 		# Resilient fifo follower
 		with open('/var/lib/pnat/close.fifo') as closefifo:
 			while True:
@@ -47,7 +47,7 @@ def closed_tracker(condition, parsed_keys={0}):
 						connjson = active_connections.pop(key)
 						conntime = connjson['start']	# already made to integer by conns_tracker
 						connip = connjson['ip']
-						close_json = {'type': 'closed', 'start': conntime, 'end': closetime, 'ip': connip, 'exe': closeexe}
+						close_json = json.dumps({'type': 'closed', 'start': conntime, 'end': closetime, 'ip': connip, 'exe': closeexe})
 						#print("{}".format(close_json))
 						logfile.write("{}\n".format(close_json))
 					logfile.flush()
@@ -66,7 +66,7 @@ def closed_tracker(condition, parsed_keys={0}):
 # Unique parsed keys (used to avoid logging duplicate entries in the last second). This reduces log output by a lot.
 def conns_tracker(condition, parsed_keys={(0,'',0)}):
 	print("Started conns_tracker")
-	with open('/var/lib/pnat/pnat.log', 'a') as logfile:
+	with open('/var/log/pnat/pnat.log', 'a') as logfile:
 		with open('/var/lib/pnat/conn.fifo') as connfifo:
 			while True:
 				connline = connfifo.readline()
@@ -92,7 +92,7 @@ def conns_tracker(condition, parsed_keys={(0,'',0)}):
 						# if new record is not in parsed keys of the current (second,ip,pid)
 						if (conntime,connip,connpid) not in parsed_keys:
 							parsed_keys.add((conntime,connip,connpid))
-							stripped_connjson = {'type':'pending', 'start': conntime, 'ip': connip, 'exe': connexe}
+							stripped_connjson = json.dumps({'type':'pending', 'start': conntime, 'ip': connip, 'exe': connexe})
 							active_connections[(conntime, connip, connpid)] = stripped_connjson
 							#print("{}".format(stripped_connjson))
 							logfile.write("{}\n".format(stripped_connjson))
