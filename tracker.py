@@ -44,7 +44,7 @@ def closed_tracker(condition, parsed_keys={0}):
 					# a.k.a. we cannot pop in the dictionary while looping through it
 					keyslist = [key for key in active_connections.keys() if key[2] == closepid and key[0] <= closetime]
 					for key in keyslist:	# for each (start,ip,pid) tuple, with the same pid as closepid and older start timestamp than closetime
-						connjson = active_connections.pop(key)
+						connjson = json.loads(active_connections.pop(key))
 						conntime = connjson['start']	# already made to integer by conns_tracker
 						connip = connjson['ip']
 						close_json = json.dumps({'type': 'closed', 'start': conntime, 'end': closetime, 'ip': connip, 'exe': closeexe})
