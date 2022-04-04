@@ -2,12 +2,12 @@
 
 # TODO: improve code quality using decorators to reuse most of the code
 
-import sys
+import sys, os, syslog
 import re
-import concurrent.futures
-import threading
+import concurrent.futures, threading
 import json
 
+syslog.openlog(ident="netpot[%s]" % os.getpid())
 # A dictionary to keep track of all network events to be processed
 active_connections = {}
 # I'm not sure a dictionary is thread safe when add/removes happen in parallel, so I rely on a simple lock
@@ -49,8 +49,9 @@ def closed_tracker(condition, parsed_keys={0}):
 						connip = connjson['ip']
 						close_json = json.dumps({'type': 'closed', 'start': conntime, 'end': closetime, 'ip': connip, 'exe': closeexe})
 						#print("{}".format(close_json))
-						logfile.write("{}\n".format(close_json))
-					logfile.flush()
+						#logfile.write("{}\n".format(close_json))
+						syslog.syslog("{}".format(close_json))
+					#logfile.flush()
 
 				# smart synchronization with Condition
 				# checks are done in both threads, so that there is no way of breaking flow integrity
@@ -95,8 +96,9 @@ def conns_tracker(condition, parsed_keys={(0,'',0)}):
 							stripped_connjson = json.dumps({'type':'pending', 'start': conntime, 'ip': connip, 'exe': connexe})
 							active_connections[(conntime, connip, connpid)] = stripped_connjson
 							#print("{}".format(stripped_connjson))
-							logfile.write("{}\n".format(stripped_connjson))
-							logfile.flush()
+							syslog.syslog("{}".format(stripped_connjson))
+							#logfile.write("{}\n".format(stripped_connjson))
+							#logfile.flush()
 
 				# Update timestamp of the last processed record AFTER it's actually been processed
 				# Symmetrical to closed_tracker, however we notify here instead of waiting
