@@ -7,7 +7,7 @@ import re
 import concurrent.futures, threading
 import json
 
-syslog.openlog(ident="pnat[%s]" % os.getpid())
+syslog.openlog(ident="pnat[%s]" % os.getpid(), facility=syslog.LOG_DAEMON)
 # A dictionary to keep track of all network events to be processed
 active_connections = {}
 # I'm not sure a dictionary is thread safe when add/removes happen in parallel, so I rely on a simple lock
